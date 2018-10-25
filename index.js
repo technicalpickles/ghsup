@@ -1,44 +1,61 @@
 const fetch = require('node-fetch')
+const {promisify} = require('util');
 const dotenv = require('dotenv')
 const result = dotenv.config()
+const execFile = promisify(require('child_process').execFile)
+
 if (result.error) {
   throw result.error
 }
 
 process.chdir(process.argv[2])
 
-
-const { execFile } = require('child_process')
-const child = execFile('git', ['config', 'remote.origin.url'], (error, stdout, stderr) => {
-  if (error) {
-    throw error
-  }
-
-  const remote = stdout
-  const match = remote.match(/github\.com\/(\w+)\/(\w+)/)
-  const owner = match[1]
-  const repo = match[2]
-
-
-  const accessToken = process.env.GHSUP_TOKEN
-  const query = `
-    query {
-      repository(owner:"${owner}", name:"${repo}") {
-        issues(states:CLOSED) {
-          totalCount
-        }
-      }
-    }`
-
-  fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    body: JSON.stringify({ query }),
-    headers: {
-      'Authorization': `Bearer ${accessToken}`
+const accessToken = process.env.GHSUP_TOKEN
+var remote
+var owner
+var name
+var branch
+execFile('git', ['config', 'remote.origin.url'])
+  .then((result) => {
+    if (result.error) {
+      throw result.error
     }
-  }).then(res => res.text())
-    .then(body => console.log(body)) // {"data":{"repository":{"issues":{"totalCount":247}}}}
-    .catch(error => console.error(error))
-})
 
+    remote = result.stdout
+    const match = remote.match(/github\.com\/(\w+)\/(\w+)/)
+    owner = match[1]
+    name = match[2]
 
+    return execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
+  }).then((result) => {
+    if (result.error) {
+      throw result.error
+    }
+
+    branch = result.stdout
+    const query = `
+      query {
+        repository(owner:"${owner}", name:"${name}") {
+          pullRequests(last: 20) {
+            edges {
+              node {
+                number
+              }
+            }
+          }
+        }
+        viewer {
+          login
+        }
+      }`
+
+    return fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    })
+  }).then(res => res.text()
+  ).then(body => console.log(JSON.stringify(JSON.parse(body), null, 2))
+  ).catch(error => console.error(error))
