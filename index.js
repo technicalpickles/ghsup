@@ -5,22 +5,40 @@ if (result.error) {
   throw result.error
 }
 
-const accessToken = process.env.GHSUP_TOKEN
-const query = `
-  query {
-    repository(owner:"isaacs", name:"github") {
-      issues(states:CLOSED) {
-        totalCount
-      }
-    }
-  }`
+process.chdir(process.argv[2])
 
-fetch('https://api.github.com/graphql', {
-  method: 'POST',
-  body: JSON.stringify({ query }),
-  headers: {
-    'Authorization': `Bearer ${accessToken}`
+
+const { execFile } = require('child_process')
+const child = execFile('git', ['config', 'remote.origin.url'], (error, stdout, stderr) => {
+  if (error) {
+    throw error
   }
-}).then(res => res.text())
-  .then(body => console.log(body)) // {"data":{"repository":{"issues":{"totalCount":247}}}}
-  .catch(error => console.error(error))
+
+  const remote = stdout
+  const match = remote.match(/github\.com\/(\w+)\/(\w+)/)
+  const owner = match[1]
+  const repo = match[2]
+
+
+  const accessToken = process.env.GHSUP_TOKEN
+  const query = `
+    query {
+      repository(owner:"${owner}", name:"${repo}") {
+        issues(states:CLOSED) {
+          totalCount
+        }
+      }
+    }`
+
+  fetch('https://api.github.com/graphql', {
+    method: 'POST',
+    body: JSON.stringify({ query }),
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  }).then(res => res.text())
+    .then(body => console.log(body)) // {"data":{"repository":{"issues":{"totalCount":247}}}}
+    .catch(error => console.error(error))
+})
+
+
