@@ -36,16 +36,36 @@ execFile('git', ['config', 'remote.origin.url'])
     const query = `
       query {
         repository(owner:"${owner}", name:"${name}") {
-          pullRequests(last: 20) {
+          pullRequests(last: 1) {
             edges {
               node {
-                number
+                createdAt
+                url
+                state
+                headRefName
+
+                commits(last: 1) {
+                  edges {
+                    node {
+                      commit { 
+                        status {
+                          state
+                          contexts {
+                            context
+                            creator {
+                              login
+                            }
+                            description
+                            state
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
-        }
-        viewer {
-          login
         }
       }`
 
@@ -53,7 +73,8 @@ execFile('git', ['config', 'remote.origin.url'])
       method: 'POST',
       body: JSON.stringify({ query }),
       headers: {
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.github.antiope-preview+json'
       }
     })
   }).then(res => res.text()
