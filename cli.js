@@ -34,10 +34,11 @@ execFile('git', ['config', 'remote.origin.url'])
     }
 
     branch = result.stdout
+    branch = branch.substring(0, branch.length - 1)
     const query = `
       query {
         repository(owner:"${owner}", name:"${name}") {
-          pullRequests(last: 1) {
+          pullRequests(last: 1, headRefName: "${branch}") {
             edges {
               node {
                 createdAt
@@ -48,7 +49,8 @@ execFile('git', ['config', 'remote.origin.url'])
                 commits(last: 1) {
                   edges {
                     node {
-                      commit { 
+                      commit {
+                        oid
                         status {
                           state
                           contexts {
@@ -79,5 +81,12 @@ execFile('git', ['config', 'remote.origin.url'])
       }
     })
   }).then(res => res.text()
-  ).then(body => console.log(JSON.stringify(JSON.parse(body), null, 2))
-  ).catch(error => console.error(error))
+  ).then(body => JSON.parse(body)
+  ).then(data => data.data.repository.pullRequests.edges[0].node
+  ).then(pullRequest => {
+    const commit = pullRequest.commits.edges[0].node.commit
+    for (let context of commit.status.contexts) {
+      console.log(`${context.context}: ${context.description}`)
+    }
+    // console.log(JSON.stringify(commit, null, 2))
+  }).catch(error => console.error(error))
