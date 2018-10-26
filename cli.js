@@ -4,6 +4,7 @@ const {promisify} = require('util');
 const dotenv = require('dotenv')
 const result = dotenv.config()
 const execFile = promisify(require('child_process').execFile)
+const chalk = require('chalk')
 
 if (result.error) {
   throw result.error
@@ -86,7 +87,13 @@ execFile('git', ['config', 'remote.origin.url'])
   ).then(pullRequest => {
     const commit = pullRequest.commits.edges[0].node.commit
     for (let context of commit.status.contexts) {
-      console.log(`${context.context}: ${context.description}`)
+      var styledContext
+      switch (context.state) {
+        case "SUCCESS": styledContext = chalk.green(context.context) ; break
+        case "PENDING": styledContext = chalk.yellow(context.context); break
+        case "FAILURE": styledContext = chalk.red(context.context); break
+      }
+      console.log(`${styledContext}: ${context.description}`)
     }
     // console.log(JSON.stringify(commit, null, 2))
   }).catch(error => console.error(error))
