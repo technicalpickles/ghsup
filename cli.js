@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const fetch = require('node-fetch')
 const {promisify} = require('util');
 const dotenv = require('dotenv')
@@ -8,7 +9,7 @@ if (result.error) {
   throw result.error
 }
 
-process.chdir(process.argv[2])
+// process.chdir(process.argv[2])
 
 const accessToken = process.env.GHSUP_TOKEN
 var remote

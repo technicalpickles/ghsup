@@ -2,8 +2,11 @@
   "name": "ghsup",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "bin": {
+    "gh-sup": "cli.js"
+  },
   "dependencies": {
+    "chalk": "^2.4.1",
     "dotenv": "^6.1.0",
     "node-fetch": "^2.2.0"
   },
