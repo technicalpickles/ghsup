@@ -45,6 +45,9 @@ class ProjectDirectory {
   }
 
   async collectPullRequest() {
+    var after = ""
+    var whileMorePages = true
+
     const query = `
       query {
         repository(owner:"${this.owner}", name:"${this.name}") {
@@ -56,7 +59,7 @@ class ProjectDirectory {
                 state
                 headRefName
 
-                commits(last: 1) {
+                commits(last: 1, before: "${after}") {
                   edges {
                     node {
                       commit {
@@ -75,6 +78,10 @@ class ProjectDirectory {
                       }
                     }
                   }
+                  pageInfo {
+                    startCursor
+                    hasPreviousPage
+                  }
                 }
               }
             }
@@ -82,6 +89,13 @@ class ProjectDirectory {
         }
       }`
 
+    return this.fetchGraphql(query).then(data => {
+      this.pullRequest = data.data.repository.pullRequests.edges[0].node
+      return this.pullRequest
+    })
+  }
+
+  async fetchGraphql(query) {
     return fetch('https://api.github.com/graphql', {
       method: 'POST',
       body: JSON.stringify({ query }),
@@ -90,12 +104,8 @@ class ProjectDirectory {
         'Accept': 'application/vnd.github.antiope-preview+json'
       }
     }).then(res => res.text()
-    ).then(body => {
-      const data = JSON.parse(body)
-      this.pullRequest = data.data.repository.pullRequests.edges[0].node
-
-      return this.pullRequest
-    }).catch(error => console.error(error))
+    ).then(body => JSON.parse(body)
+    ).catch(error => console.error(error))
   }
 
   async collectBranch() {
