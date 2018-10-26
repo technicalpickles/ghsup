@@ -13,33 +13,42 @@ if (result.error) {
 // process.chdir(process.argv[2])
 
 const accessToken = process.env.GHSUP_TOKEN
-var remote
 var owner
 var name
 var branch
-execFile('git', ['config', 'remote.origin.url'])
-  .then((result) => {
-    if (result.error) {
-      throw result.error
-    }
 
-    remote = result.stdout
-    const match = remote.match(/github\.com\/(\w+)\/(\w+)/)
-    owner = match[1]
-    name = match[2]
+class ProjectDirectory {
+  constructor(directory) {
+    this.directory = directory
+  }
 
-    return execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
-  }).then((result) => {
-    if (result.error) {
-      throw result.error
-    }
+  async collectRemote() {
+    return execFile('git', ['config', 'remote.origin.url'])
+      .then((result) => {
+        if (result.error) {
+          throw result.error
+        }
 
-    branch = result.stdout
-    branch = branch.substring(0, branch.length - 1)
+        this.remote = result.stdout
+        this.remote = this.remote.substring(0, this.remote.length - 1)
+        const match = this.remote.match(/github\.com\/(\w+)\/(\w+)/)
+        this.owner = match[1]
+        this.name = match[2]
+        return this.remote
+      })
+  }
+
+  async collectEverything() {
+    await this.collectRemote()
+    await this.collectBranch()
+    await this.collectPullRequest()
+  }
+
+  async collectPullRequest() {
     const query = `
       query {
-        repository(owner:"${owner}", name:"${name}") {
-          pullRequests(last: 1, headRefName: "${branch}") {
+        repository(owner:"${this.owner}", name:"${this.name}") {
+          pullRequests(last: 1, headRefName: "${this.branch}") {
             edges {
               node {
                 createdAt
@@ -80,20 +89,39 @@ execFile('git', ['config', 'remote.origin.url'])
         'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/vnd.github.antiope-preview+json'
       }
-    })
-  }).then(res => res.text()
-  ).then(body => JSON.parse(body)
-  ).then(data => data.data.repository.pullRequests.edges[0].node
-  ).then(pullRequest => {
-    const commit = pullRequest.commits.edges[0].node.commit
-    for (let context of commit.status.contexts) {
-      var styledContext
-      switch (context.state) {
-        case "SUCCESS": styledContext = chalk.green(context.context) ; break
-        case "PENDING": styledContext = chalk.yellow(context.context); break
-        case "FAILURE": styledContext = chalk.red(context.context); break
-      }
-      console.log(`${styledContext}: ${context.description}`)
+    }).then(res => res.text()
+    ).then(body => {
+      const data = JSON.parse(body)
+      this.pullRequest = data.data.repository.pullRequests.edges[0].node
+
+      return this.pullRequest
+    }).catch(error => console.error(error))
+  }
+
+  async collectBranch() {
+    return execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
+      .then((result) => {
+        if (result.error) {
+          throw result.error
+        }
+
+        this.branch = result.stdout
+        this.branch = this.branch.substring(0, this.branch.length - 1)
+        return this.branch
+      })
+  }
+}
+
+const projectDirectory = new ProjectDirectory()
+projectDirectory.collectEverything().then(() => {
+  const commit = projectDirectory.pullRequest.commits.edges[0].node.commit
+  for (let context of commit.status.contexts) {
+    var styledContext
+    switch (context.state) {
+      case "SUCCESS": styledContext = chalk.green(context.context) ; break
+      case "PENDING": styledContext = chalk.yellow(context.context); break
+      case "FAILURE": styledContext = chalk.red(context.context); break
     }
-    // console.log(JSON.stringify(commit, null, 2))
-  }).catch(error => console.error(error))
+    console.log(`${styledContext}: ${context.description}`)
+  }
+})
