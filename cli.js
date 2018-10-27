@@ -151,8 +151,10 @@ class ProjectDirectory {
   }
 }
 
-const projectDirectory = new ProjectDirectory(process.argv[2])
-projectDirectory.collectEverything().then(() => {
+async function main() {
+  const projectDirectory = new ProjectDirectory(process.argv[2])
+  await projectDirectory.collectEverything()
+
   const lastPullRequestCommit = projectDirectory.commits[projectDirectory.commits.length- 1]
   if (lastPullRequestCommit.oid != projectDirectory.sha) {
     console.log(chalk.yellow("Warning, behind remote. git pull and all that to get up to date"))
@@ -188,4 +190,6 @@ projectDirectory.collectEverything().then(() => {
   //   }
   //   console.log(`${styledContext}: ${context.description}`)
   // }
-})
+}
+
+main()
