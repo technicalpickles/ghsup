@@ -12,9 +12,6 @@ if (result.error) {
 
 
 const accessToken = process.env.GHSUP_TOKEN
-var owner
-var name
-var branch
 
 class ProjectDirectory {
   constructor(directory) {
@@ -57,13 +54,13 @@ class ProjectDirectory {
     await this.collectBranch()
     await this.collectCommitsPage()
 
-    var results = await this.collectCommitsPage()
+    let results = await this.collectCommitsPage()
     this.pullRequest = results
 
-    var morePages = results.commits.pageInfo.hasPreviousPage
-    var before = results.commits.pageInfo.startCursor
+    let morePages = results.commits.pageInfo.hasPreviousPage
+    let before = results.commits.pageInfo.startCursor
 
-    var nextCommits = results.commits.edges.map(edge => edge.node.commit)
+    let nextCommits = results.commits.edges.map(edge => edge.node.commit)
     this.commits = [].concat(nextCommits)
 
     while (morePages) {
@@ -79,7 +76,7 @@ class ProjectDirectory {
   }
 
   async collectCommitsPage(before) {
-    var beforeQuery = ""
+    let beforeQuery = ""
     if (before) { beforeQuery = `, before: "${before}"` }
     const query = `
       query {
@@ -178,7 +175,7 @@ projectDirectory.collectEverything().then(() => {
   const commits = projectDirectory.commits
 
   for (let commit of commits) {
-    var styledState = ""
+    let styledState = ""
     if (commit.status) {
       switch (commit.status.state) {
         case "SUCCESS": styledState = chalk.green("passed") ; break
@@ -191,7 +188,7 @@ projectDirectory.collectEverything().then(() => {
 
   // const commit = projectDirectory.pullRequest.commits.edges[0].node.commit
   // for (let context of commit.status.contexts) {
-  //   var styledContext
+  //   let styledContext
   //   switch (context.state) {
   //     case "SUCCESS": styledContext = chalk.green(context.context) ; break
   //     case "PENDING": styledContext = chalk.yellow(context.context); break
