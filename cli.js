@@ -36,16 +36,14 @@ class ProjectDirectory {
   }
 
   async collectSha() {
-    return execFile('git', ['rev-parse', 'HEAD'])
-      .then((result) => {
-        if (result.error) {
-          throw result.error
-        }
+    let result = await execFile('git', ['rev-parse', 'HEAD'])
+    if (result.error) {
+      throw result.error
+    }
 
-        this.sha = result.stdout
-        this.sha = this.sha.substring(0, this.sha.length - 1)
-        return this.sha
-      })
+    this.sha = result.stdout
+    this.sha = this.sha.substring(0, this.sha.length - 1)
+    return this.sha
   }
 
   async collectEverything() {
