@@ -43,7 +43,7 @@ class ProjectDirectory {
     await this.collectBranch()
     await this.collectCommitsPage()
 
-    console.log("first page")
+    // console.log("first page")
     var results = await this.collectCommitsPage()
     this.pullRequest = results
 
@@ -59,13 +59,13 @@ class ProjectDirectory {
       morePages = results.commits.pageInfo.hasPreviousPage
       before = results.commits.pageInfo.startCursor
 
-      console.log(`before ${before}`)
+      // console.log(`before ${before}`)
       nextCommits = results.commits.edges.map(edge => edge.node.commit)
       this.commits = this.commits.concat(nextCommits)
-
     }
-    console.log(JSON.stringify(this.commits, null, 2))
+    this.commits.sort((a, b) => new Date(a.committedDate).getTime() - new Date(b.committedDate).getTime())
 
+    // console.log(JSON.stringify(this.commits, null, 2))
   }
 
   async collectCommitsPage(before) {
@@ -87,6 +87,8 @@ class ProjectDirectory {
                     node {
                       commit {
                         oid
+                        pushedDate
+                        committedDate
                         status {
                           state
                           contexts {
@@ -113,7 +115,7 @@ class ProjectDirectory {
       }`
 
     return this.fetchGraphql(query).then(data => {
-      console.log(JSON.stringify(data, null, 2))
+      // console.log(JSON.stringify(data, null, 2))
       return data.data.repository.pullRequests.edges[0].node
     })
   }
@@ -147,6 +149,18 @@ class ProjectDirectory {
 
 const projectDirectory = new ProjectDirectory()
 projectDirectory.collectEverything().then(() => {
+
+  for (let commit of projectDirectory.commits) {
+    var styledState = ""
+    if (commit.status) {
+      switch (commit.status.state) {
+        case "SUCCESS": styledState = chalk.green("passed") ; break
+        case "PENDING": styledState = chalk.yellow("pending"); break
+        case "FAILURE": styledState = chalk.red("failed"); break
+      }
+    }
+    console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
+  }
 
   // const commit = projectDirectory.pullRequest.commits.edges[0].node.commit
   // for (let context of commit.status.contexts) {
