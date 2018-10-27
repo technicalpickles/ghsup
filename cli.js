@@ -43,7 +43,6 @@ class ProjectDirectory {
     await this.collectBranch()
     await this.collectCommitsPage()
 
-    // console.log("first page")
     var results = await this.collectCommitsPage()
     this.pullRequest = results
 
@@ -59,13 +58,10 @@ class ProjectDirectory {
       morePages = results.commits.pageInfo.hasPreviousPage
       before = results.commits.pageInfo.startCursor
 
-      // console.log(`before ${before}`)
       nextCommits = results.commits.edges.map(edge => edge.node.commit)
       this.commits = this.commits.concat(nextCommits)
     }
     this.commits.sort((a, b) => new Date(a.committedDate).getTime() - new Date(b.committedDate).getTime())
-
-    // console.log(JSON.stringify(this.commits, null, 2))
   }
 
   async collectCommitsPage(before) {
@@ -80,7 +76,10 @@ class ProjectDirectory {
                 createdAt
                 url
                 state
-                headRefName
+                headRef {
+                  name
+                  oid
+                }
 
                 commits(last: 20${beforeQuery}) {
                   edges {
