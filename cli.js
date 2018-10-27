@@ -20,19 +20,17 @@ class ProjectDirectory {
   }
 
   async collectRemote() {
-    return execFile('git', ['config', 'remote.origin.url'])
-      .then((result) => {
-        if (result.error) {
-          throw result.error
-        }
+    let result = await execFile('git', ['config', 'remote.origin.url'])
+    if (result.error) {
+      throw result.error
+    }
 
-        this.remote = result.stdout
-        this.remote = this.remote.substring(0, this.remote.length - 1)
-        const match = this.remote.match(/github\.com\/(\w+)\/(\w+)/)
-        this.owner = match[1]
-        this.name = match[2]
-        return this.remote
-      })
+    this.remote = result.stdout
+    this.remote = this.remote.substring(0, this.remote.length - 1)
+    const match = this.remote.match(/github\.com\/(\w+)\/(\w+)/)
+    this.owner = match[1]
+    this.name = match[2]
+    return this.remote
   }
 
   async collectSha() {
