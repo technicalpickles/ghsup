@@ -10,7 +10,6 @@ if (result.error) {
   throw result.error
 }
 
-// process.chdir(process.argv[2])
 
 const accessToken = process.env.GHSUP_TOKEN
 var owner
@@ -20,6 +19,7 @@ var branch
 class ProjectDirectory {
   constructor(directory) {
     this.directory = directory
+    // process.chdir(this.directory)
   }
 
   async collectRemote() {
@@ -38,8 +38,22 @@ class ProjectDirectory {
       })
   }
 
+  async collectSha() {
+    return execFile('git', ['rev-parse', 'HEAD'])
+      .then((result) => {
+        if (result.error) {
+          throw result.error
+        }
+
+        this.sha = result.stdout
+        this.sha = this.sha.substring(0, this.sha.length - 1)
+        return this.sha
+      })
+  }
+
   async collectEverything() {
     await this.collectRemote()
+    await this.collectSha()
     await this.collectBranch()
     await this.collectCommitsPage()
 
@@ -78,7 +92,9 @@ class ProjectDirectory {
                 state
                 headRef {
                   name
-                  oid
+                  target {
+                    oid
+                  }
                 }
 
                 commits(last: 20${beforeQuery}) {
@@ -146,10 +162,22 @@ class ProjectDirectory {
   }
 }
 
-const projectDirectory = new ProjectDirectory()
+const projectDirectory = new ProjectDirectory(process.argv[2])
 projectDirectory.collectEverything().then(() => {
+  const lastPullRequestCommit = projectDirectory.commits[projectDirectory.commits.length- 1]
+  if (lastPullRequestCommit.oid != projectDirectory.sha) {
+    console.log(chalk.yellow("Warning, behind remote. git pull and all that to get up to date"))
+  }
 
-  for (let commit of projectDirectory.commits) {
+  const localShaCommitIndex = projectDirectory.commits.map(commit => commit.oid).indexOf(projectDirectory.sha)
+  console.log(lastPullRequestCommit.oid)
+  console.log(projectDirectory.sha)
+  console.log(localShaCommitIndex)
+  // debugger
+  // const commits = projectDirectory.commits.slice(localShaCommitIndex, projectDirectory.commits.length - 1)
+  const commits = projectDirectory.commits
+
+  for (let commit of commits) {
     var styledState = ""
     if (commit.status) {
       switch (commit.status.state) {
