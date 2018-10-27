@@ -48,7 +48,6 @@ class ProjectDirectory {
     await this.collectRemote()
     await this.collectSha()
     await this.collectBranch()
-    await this.collectCommitsPage()
 
     let results = await this.collectCommitsPage()
     this.pullRequest = results
@@ -122,10 +121,9 @@ class ProjectDirectory {
         }
       }`
 
-    return this.fetchGraphql(query).then(data => {
-      // console.log(JSON.stringify(data, null, 2))
-      return data.data.repository.pullRequests.edges[0].node
-    })
+    let data = await this.fetchGraphql(query)
+    // console.log(JSON.stringify(data, null, 2))
+    return data.data.repository.pullRequests.edges[0].node
   }
 
   async fetchGraphql(query) {
