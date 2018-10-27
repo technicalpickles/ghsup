@@ -146,16 +146,14 @@ class ProjectDirectory {
   }
 
   async collectBranch() {
-    return execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
-      .then((result) => {
-        if (result.error) {
-          throw result.error
-        }
+    let result = await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
+    if (result.error) {
+      throw result.error
+    }
 
-        this.branch = result.stdout
-        this.branch = this.branch.substring(0, this.branch.length - 1)
-        return this.branch
-      })
+    this.branch = result.stdout
+    this.branch = this.branch.substring(0, this.branch.length - 1)
+    return this.branch
   }
 }
 
