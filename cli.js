@@ -41,13 +41,36 @@ class ProjectDirectory {
   async collectEverything() {
     await this.collectRemote()
     await this.collectBranch()
-    await this.collectPullRequest()
+    await this.collectCommitsPage()
+
+    console.log("first page")
+    var results = await this.collectCommitsPage()
+    this.pullRequest = results
+
+    var morePages = results.commits.pageInfo.hasPreviousPage
+    var before = results.commits.pageInfo.startCursor
+
+    var nextCommits = results.commits.edges.map(edge => edge.node.commit)
+    this.commits = [].concat(nextCommits)
+
+    while (morePages) {
+      results = await this.collectCommitsPage(before)
+
+      morePages = results.commits.pageInfo.hasPreviousPage
+      before = results.commits.pageInfo.startCursor
+
+      console.log(`before ${before}`)
+      nextCommits = results.commits.edges.map(edge => edge.node.commit)
+      this.commits = this.commits.concat(nextCommits)
+
+    }
+    console.log(JSON.stringify(this.commits, null, 2))
+
   }
 
-  async collectPullRequest() {
-    var after = ""
-    var whileMorePages = true
-
+  async collectCommitsPage(before) {
+    var beforeQuery = ""
+    if (before) { beforeQuery = `, before: "${before}"` }
     const query = `
       query {
         repository(owner:"${this.owner}", name:"${this.name}") {
@@ -59,7 +82,7 @@ class ProjectDirectory {
                 state
                 headRefName
 
-                commits(last: 1, before: "${after}") {
+                commits(last: 20${beforeQuery}) {
                   edges {
                     node {
                       commit {
@@ -90,8 +113,8 @@ class ProjectDirectory {
       }`
 
     return this.fetchGraphql(query).then(data => {
-      this.pullRequest = data.data.repository.pullRequests.edges[0].node
-      return this.pullRequest
+      console.log(JSON.stringify(data, null, 2))
+      return data.data.repository.pullRequests.edges[0].node
     })
   }
 
@@ -124,14 +147,15 @@ class ProjectDirectory {
 
 const projectDirectory = new ProjectDirectory()
 projectDirectory.collectEverything().then(() => {
-  const commit = projectDirectory.pullRequest.commits.edges[0].node.commit
-  for (let context of commit.status.contexts) {
-    var styledContext
-    switch (context.state) {
-      case "SUCCESS": styledContext = chalk.green(context.context) ; break
-      case "PENDING": styledContext = chalk.yellow(context.context); break
-      case "FAILURE": styledContext = chalk.red(context.context); break
-    }
-    console.log(`${styledContext}: ${context.description}`)
-  }
+
+  // const commit = projectDirectory.pullRequest.commits.edges[0].node.commit
+  // for (let context of commit.status.contexts) {
+  //   var styledContext
+  //   switch (context.state) {
+  //     case "SUCCESS": styledContext = chalk.green(context.context) ; break
+  //     case "PENDING": styledContext = chalk.yellow(context.context); break
+  //     case "FAILURE": styledContext = chalk.red(context.context); break
+  //   }
+  //   console.log(`${styledContext}: ${context.description}`)
+  // }
 })
