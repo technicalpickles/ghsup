@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const fetch = require('node-fetch')
-const {promisify} = require('util');
+const { promisify } = require('util')
 const dotenv = require('dotenv')
 const result = dotenv.config()
 const execFile = promisify(require('child_process').execFile)
@@ -9,12 +9,12 @@ const chalk = require('chalk')
 const accessToken = process.env.GHSUP_TOKEN
 
 class ProjectDirectory {
-  constructor(directory) {
+  constructor (directory) {
     this.directory = directory
     process.chdir(this.directory)
   }
 
-  async collectRemote() {
+  async collectRemote () {
     let result = await execFile('git', ['config', 'remote.origin.url'])
     if (result.error) {
       throw result.error
@@ -28,7 +28,7 @@ class ProjectDirectory {
     return this.remote
   }
 
-  async collectSha() {
+  async collectSha () {
     let result = await execFile('git', ['rev-parse', 'HEAD'])
     if (result.error) {
       throw result.error
@@ -39,7 +39,7 @@ class ProjectDirectory {
     return this.sha
   }
 
-  async collectEverything() {
+  async collectEverything () {
     await this.collectRemote()
     await this.collectSha()
     await this.collectBranch()
@@ -65,8 +65,8 @@ class ProjectDirectory {
     this.commits.sort((a, b) => new Date(a.committedDate).getTime() - new Date(b.committedDate).getTime())
   }
 
-  async collectCommitsPage(before) {
-    let beforeQuery = ""
+  async collectCommitsPage (before) {
+    let beforeQuery = ''
     if (before) { beforeQuery = `, before: "${before}"` }
     const query = `
       query {
@@ -121,7 +121,7 @@ class ProjectDirectory {
     return data.data.repository.pullRequests.edges[0].node
   }
 
-  async fetchGraphql(query) {
+  async fetchGraphql (query) {
     return fetch('https://api.github.com/graphql', {
       method: 'POST',
       body: JSON.stringify({ query }),
@@ -134,7 +134,7 @@ class ProjectDirectory {
     ).catch(error => console.error(error))
   }
 
-  async collectBranch() {
+  async collectBranch () {
     let result = await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
     if (result.error) {
       throw result.error
@@ -146,7 +146,7 @@ class ProjectDirectory {
   }
 }
 
-async function main(argv) {
+async function main (argv) {
   let directory
   const program = require('commander')
   program.arguments('[directory]')
@@ -155,16 +155,16 @@ async function main(argv) {
     })
   program.parse(process.argv)
 
-  if (! directory) {
+  if (!directory) {
     directory = process.cwd()
   }
 
   const projectDirectory = new ProjectDirectory(process.argv[2])
   await projectDirectory.collectEverything()
 
-  const lastPullRequestCommit = projectDirectory.commits[projectDirectory.commits.length- 1]
+  const lastPullRequestCommit = projectDirectory.commits[projectDirectory.commits.length - 1]
   if (lastPullRequestCommit.oid != projectDirectory.sha) {
-    console.log(chalk.yellow("Warning, behind remote. git pull and all that to get up to date"))
+    console.log(chalk.yellow('Warning, behind remote. git pull and all that to get up to date'))
   }
 
   const localShaCommitIndex = projectDirectory.commits.map(commit => commit.oid).indexOf(projectDirectory.sha)
@@ -176,12 +176,12 @@ async function main(argv) {
   const commits = projectDirectory.commits
 
   for (let commit of commits) {
-    let styledState = ""
+    let styledState = ''
     if (commit.status) {
       switch (commit.status.state) {
-        case "SUCCESS": styledState = chalk.green("passed") ; break
-        case "PENDING": styledState = chalk.yellow("pending"); break
-        case "FAILURE": styledState = chalk.red("failed"); break
+        case 'SUCCESS': styledState = chalk.green('passed'); break
+        case 'PENDING': styledState = chalk.yellow('pending'); break
+        case 'FAILURE': styledState = chalk.red('failed'); break
       }
     }
     console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
