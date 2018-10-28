@@ -6,17 +6,12 @@ const result = dotenv.config()
 const execFile = promisify(require('child_process').execFile)
 const chalk = require('chalk')
 
-if (result.error) {
-  throw result.error
-}
-
-
 const accessToken = process.env.GHSUP_TOKEN
 
 class ProjectDirectory {
   constructor(directory) {
     this.directory = directory
-    // process.chdir(this.directory)
+    process.chdir(this.directory)
   }
 
   async collectRemote() {
@@ -151,7 +146,19 @@ class ProjectDirectory {
   }
 }
 
-async function main() {
+async function main(argv) {
+  let directory
+  const program = require('commander')
+  program.arguments('[directory]')
+    .action((directoryArgument) => {
+      directory = directoryArgument
+    })
+  program.parse(process.argv)
+
+  if (! directory) {
+    directory = process.cwd()
+  }
+
   const projectDirectory = new ProjectDirectory(process.argv[2])
   await projectDirectory.collectEverything()
 
