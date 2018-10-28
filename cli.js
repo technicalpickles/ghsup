@@ -2,9 +2,10 @@
 const fetch = require('node-fetch')
 const { promisify } = require('util')
 const dotenv = require('dotenv')
-const result = dotenv.config()
 const execFile = promisify(require('child_process').execFile)
 const chalk = require('chalk')
+
+dotenv.config()
 
 const accessToken = process.env.GHSUP_TOKEN
 
@@ -163,7 +164,7 @@ async function main (argv) {
   await projectDirectory.collectEverything()
 
   const lastPullRequestCommit = projectDirectory.commits[projectDirectory.commits.length - 1]
-  if (lastPullRequestCommit.oid != projectDirectory.sha) {
+  if (lastPullRequestCommit.oid !== projectDirectory.sha) {
     console.log(chalk.yellow('Warning, behind remote. git pull and all that to get up to date'))
   }
 
