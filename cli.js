@@ -13,6 +13,22 @@ let supportLinks = supportsHyperlinks.stdout
 if (supportsHyperlinks && process.env.TERM == "screen") {
   supportLinks = false
 }
+function isTmux() {
+  return process.env.TMUX
+}
+function tmuxEscapeWrap(itermCommand) {
+  if (process.env.TMUX) {
+    // FIXME this sort of works, but isn't terminated quite correctly
+    itermCommand = `\x1bPtmux;\x1b${itermCommand}\x1b\\`
+  } 
+  return itermCommand
+}
+
+function link(text, url) {
+  let result = ansiEscapes.link(text, url)
+  return result
+  // return tmuxEscapeWrap(result)
+}
 
 const accessToken = process.env.GHSUP_TOKEN
 
@@ -87,6 +103,7 @@ class ProjectDirectory {
             edges {
               node {
                 title
+                number
                 url
                 createdAt
                 url
@@ -209,16 +226,17 @@ async function main (argv) {
 
   let prStateStyle
   switch (pullRequest.state) {
-    case 'CLOSED': prStateStyle = chalk.red; break
-    case 'MERGED': prStateStyle = chalk.magenta; break
-    case 'OPEN': prStateStyle = chalk.green; break
+    case 'CLOSED': prStateStyle = chalk.bgRed.black; break
+    case 'MERGED': prStateStyle = chalk.bgMagenta.black; break
+    case 'OPEN': prStateStyle = chalk.bgGreen.black; break
     default:  prStateStyle = chalk.white
   }
 
+  let header = `${pullRequest.title} #${pullRequest.number}`
   if (supportLinks) {
-    console.log(prStateStyle(ansiEscapes.link(pullRequest.title, pullRequest.url)))
+    console.log(`${link(header, pullRequest.url)} ${prStateStyle(' ' + pullRequest.state + ' ')}`)
   } else {
-    console.log(`${prStateStyle(pullRequest.title)} [${prStateStyle(pullRequest.url)}]`)
+    console.log(`${header} ${prStateStyle(pullRequest.state)} [${pullRequest.url}]`)
   }
   console.log()
   // console.log(projectDirectory.pullRequest.mergeStateStatus)
@@ -230,7 +248,7 @@ async function main (argv) {
     let author
     if (commit.author.user) {
       if (supportLinks) {
-        author = `${ansiEscapes.link('@' + commit.author.user.login, commit.author.user.url)}`
+        author = `${link('@' + commit.author.user.login, commit.author.user.url)}`
       } else {
         author = `@${commit.author.user.login} [${commit.author.user.url}]`
       }
@@ -254,7 +272,7 @@ async function main (argv) {
       }
 
       if (supportLinks) {
-        console.log(`${statusStyle(context.context)} ${ansiEscapes.link(context.description, context.targetUrl)}`)
+        console.log(`${statusStyle(context.context)} ${link(context.description, context.targetUrl)}`)
       } else { 
         console.log(`${statusStyle(context.context)} ${context.description} [${context.targetUrl}]`)
       }
