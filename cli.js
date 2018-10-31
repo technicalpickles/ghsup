@@ -110,6 +110,10 @@ class ProjectDirectory {
                         author {
                           name
                           email
+                          user {
+                            login
+                            url
+                          }
                         }
                         pushedDate
                         committedDate
@@ -222,7 +226,19 @@ async function main (argv) {
   let i = 0
   for (let commit of commits) {
     console.log(`commit ${commit.oid}`)
-    console.log(`Author: ${commit.author.name} <${commit.author.email}>`)
+
+    let author
+    if (commit.author.user) {
+      if (supportLinks) {
+        author = `${ansiEscapes.link('@' + commit.author.user.login, commit.author.user.url)}`
+      } else {
+        author = `@${commit.author.user.login} [${commit.author.user.url}]`
+      }
+    } else {
+      author = `${commit.author.name} <${commit.author.email}>`
+    }
+
+    console.log(`Author: ${author}`)
     console.log(`Date: ${commit.committedDate}`)
     console.log()
     console.log(commit.message)
