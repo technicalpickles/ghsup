@@ -4,8 +4,15 @@ const { promisify } = require('util')
 const dotenv = require('dotenv')
 const execFile = promisify(require('child_process').execFile)
 const chalk = require('chalk')
+const ansiEscapes = require('ansi-escapes')
+const supportsHyperlinks = require('supports-hyperlinks')
 
 dotenv.config()
+
+let supportLinks = supportsHyperlinks.stdout
+if (supportsHyperlinks && process.env.TERM == "screen") {
+  supportLinks = false
+}
 
 const accessToken = process.env.GHSUP_TOKEN
 
@@ -91,6 +98,7 @@ class ProjectDirectory {
                   }
                 }
 
+                state
                 mergeStateStatus
 
                 commits(last: 20${beforeQuery}) {
@@ -185,6 +193,7 @@ async function main (argv) {
 
   const projectDirectory = new ProjectDirectory(process.argv[2])
   await projectDirectory.collectEverything()
+  let pullRequest = projectDirectory.pullRequest
 
   const lastPullRequestCommit = projectDirectory.commits[projectDirectory.commits.length- 1]
   if (lastPullRequestCommit.oid !== projectDirectory.sha) {
@@ -194,7 +203,19 @@ async function main (argv) {
   const localShaCommitIndex = projectDirectory.commits.map(commit => commit.oid).indexOf(projectDirectory.sha)
   const commits = projectDirectory.commits.slice(localShaCommitIndex, projectDirectory.commits.length)
 
-  console.log(`PR: ${projectDirectory.pullRequest.title} [${projectDirectory.pullRequest.url}]`)
+  let prStateStyle
+  switch (pullRequest.state) {
+    case 'CLOSED': prStateStyle = chalk.red; break
+    case 'MERGED': prStateStyle = chalk.magenta; break
+    case 'OPEN': prStateStyle = chalk.green; break
+    default:  prStateStyle = chalk.white
+  }
+
+  if (supportLinks) {
+    console.log(prStateStyle(ansiEscapes.link(pullRequest.title, pullRequest.url)))
+  } else {
+    console.log(`${prStateStyle(pullRequest.title)} [${prStateStyle(pullRequest.url)}]`)
+  }
   console.log()
   // console.log(projectDirectory.pullRequest.mergeStateStatus)
 
@@ -208,15 +229,19 @@ async function main (argv) {
     console.log()
 
     for (let context of commit.status.contexts) {
-      let style
+      let statusStyle
       switch (commit.status.state) {
-        case 'SUCCESS': style = chalk.green; break
-        case 'PENDING': style = chalk.yellow; break
-        case 'FAILURE': style = chalk.red; break
-        default:  style = chalk.white
+        case 'SUCCESS': statusStyle = chalk.green; break
+        case 'PENDING': statusStyle = chalk.yellow; break
+        case 'FAILURE': statusStyle = chalk.red; break
+        default:  statusStyle = chalk.white
       }
 
-      console.log(`${style(context.context)} ${context.description} [${context.targetUrl}]`)
+      if (supportLinks) {
+        console.log(`${statusStyle(context.context)} ${ansiEscapes.link(context.description, context.targetUrl)}`)
+      } else { 
+        console.log(`${statusStyle(context.context)} ${context.description} [${context.targetUrl}]`)
+      }
     }
 
     // console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
