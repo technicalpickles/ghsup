@@ -79,6 +79,8 @@ class ProjectDirectory {
           pullRequests(last: 1, headRefName: "${this.branch}") {
             edges {
               node {
+                title
+                url
                 createdAt
                 url
                 state
@@ -89,11 +91,18 @@ class ProjectDirectory {
                   }
                 }
 
+                mergeStateStatus
+
                 commits(last: 20${beforeQuery}) {
                   edges {
                     node {
                       commit {
                         oid
+                        message
+                        author {
+                          name
+                          email
+                        }
                         pushedDate
                         committedDate
                         status {
@@ -105,6 +114,7 @@ class ProjectDirectory {
                             }
                             description
                             state
+                            targetUrl
                           }
                         }
                       }
@@ -122,7 +132,9 @@ class ProjectDirectory {
       }`
 
     let data = await this.fetchGraphql(query)
-    // console.log(JSON.stringify(data, null, 2))
+    if (data.errors) {
+      throw JSON.stringify(data.errors, null, 2)
+    }
     return data.data.repository.pullRequests.edges[0].node
   }
 
@@ -132,7 +144,7 @@ class ProjectDirectory {
       body: JSON.stringify({ query }),
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/vnd.github.antiope-preview+json'
+        'Accept': 'application/vnd.github.antiope-preview+json, application/vnd.github.merge-info-preview+json'
       }
     })
 
@@ -182,17 +194,32 @@ async function main (argv) {
   const localShaCommitIndex = projectDirectory.commits.map(commit => commit.oid).indexOf(projectDirectory.sha)
   const commits = projectDirectory.commits.slice(localShaCommitIndex, projectDirectory.commits.length)
 
+  console.log(`PR: ${projectDirectory.pullRequest.title} [${projectDirectory.pullRequest.url}]`)
+  console.log()
+  // console.log(projectDirectory.pullRequest.mergeStateStatus)
+
   let i = 0
   for (let commit of commits) {
-    let styledState = ''
-    if (commit.status) {
+    console.log(`commit ${commit.oid}`)
+    console.log(`Author: ${commit.author.name} <${commit.author.email}>`)
+    console.log(`Date: ${commit.committedDate}`)
+    console.log()
+    console.log(commit.message)
+    console.log()
+
+    for (let context of commit.status.contexts) {
+      let style
       switch (commit.status.state) {
-        case 'SUCCESS': styledState = chalk.green('passed'); break
-        case 'PENDING': styledState = chalk.yellow('pending'); break
-        case 'FAILURE': styledState = chalk.red('failed'); break
+        case 'SUCCESS': style = chalk.green; break
+        case 'PENDING': style = chalk.yellow; break
+        case 'FAILURE': style = chalk.red; break
+        default:  style = chalk.white
       }
+
+      console.log(`${style(context.context)} ${context.description} [${context.targetUrl}]`)
     }
-    console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
+
+    // console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
     i++
   }
 
