@@ -11,8 +11,12 @@ const accessToken = process.env.GHSUP_TOKEN
 
 class ProjectDirectory {
   constructor (directory) {
-    this.directory = directory
-    process.chdir(this.directory)
+    if (!directory) {
+      this.directory = process.cwd()
+    } else {
+      this.directory = directory
+      process.chdir(this.directory)
+    }
   }
 
   async collectRemote () {
@@ -123,16 +127,27 @@ class ProjectDirectory {
   }
 
   async fetchGraphql (query) {
-    return fetch('https://api.github.com/graphql', {
+    let res = await fetch('https://api.github.com/graphql', {
       method: 'POST',
       body: JSON.stringify({ query }),
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Accept': 'application/vnd.github.antiope-preview+json'
       }
-    }).then(res => res.text()
-    ).then(body => JSON.parse(body)
-    ).catch(error => console.error(error))
+    })
+
+    let body = await res.text()
+    let data = JSON.parse(body)
+
+    if (res.status == 401) {
+      throw data.message
+    }
+
+    if (res.status !== 200) {
+      throw "non-200 from graphql :("
+    }
+
+    return data
   }
 
   async collectBranch () {
@@ -156,26 +171,18 @@ async function main (argv) {
     })
   program.parse(process.argv)
 
-  if (!directory) {
-    directory = process.cwd()
-  }
-
   const projectDirectory = new ProjectDirectory(process.argv[2])
   await projectDirectory.collectEverything()
 
-  const lastPullRequestCommit = projectDirectory.commits[projectDirectory.commits.length - 1]
+  const lastPullRequestCommit = projectDirectory.commits[projectDirectory.commits.length- 1]
   if (lastPullRequestCommit.oid !== projectDirectory.sha) {
     console.log(chalk.yellow('Warning, behind remote. git pull and all that to get up to date'))
   }
 
   const localShaCommitIndex = projectDirectory.commits.map(commit => commit.oid).indexOf(projectDirectory.sha)
-  console.log(lastPullRequestCommit.oid)
-  console.log(projectDirectory.sha)
-  console.log(localShaCommitIndex)
-  // debugger
-  // const commits = projectDirectory.commits.slice(localShaCommitIndex, projectDirectory.commits.length - 1)
-  const commits = projectDirectory.commits
+  const commits = projectDirectory.commits.slice(localShaCommitIndex, projectDirectory.commits.length)
 
+  let i = 0
   for (let commit of commits) {
     let styledState = ''
     if (commit.status) {
@@ -186,6 +193,7 @@ async function main (argv) {
       }
     }
     console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
+    i++
   }
 
   // const commit = projectDirectory.pullRequest.commits.edges[0].node.commit
