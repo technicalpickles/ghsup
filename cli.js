@@ -246,7 +246,7 @@ async function main (argv) {
 
     for (let context of commit.status.contexts) {
       let statusStyle
-      switch (commit.status.state) {
+      switch (context.state) {
         case 'SUCCESS': statusStyle = chalk.green; break
         case 'PENDING': statusStyle = chalk.yellow; break
         case 'FAILURE': statusStyle = chalk.red; break
