@@ -116,6 +116,7 @@ class ProjectDirectory {
                 }
 
                 state
+                mergeable
                 mergeStateStatus
 
                 commits(last: 20${beforeQuery}) {
@@ -282,18 +283,20 @@ async function main (argv) {
       // console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
       i++
     }
-    }
+  }
 
-  // const commit = projectDirectory.pullRequest.commits.edges[0].node.commit
-  // for (let context of commit.status.contexts) {
-  //   let styledContext
-  //   switch (context.state) {
-  //     case "SUCCESS": styledContext = chalk.green(context.context) ; break
-  //     case "PENDING": styledContext = chalk.yellow(context.context); break
-  //     case "FAILURE": styledContext = chalk.red(context.context); break
-  //   }
-  //   console.log(`${styledContext}: ${context.description}`)
-  // }
+  switch (pullRequest.mergeStateStatus) {
+    case "UNKNOWN":
+      console.log()
+      console.log(`Checking merge status...`)
+    case "DIRTY":
+      console.log()
+      console.log(`This branch has conflicts that must be resolved`)
+    case "BLOCKED":
+      console.log()
+      console.log(`Merging is ${chalk.red('blocked')}`)
+      break
+  }
 }
 
 main()
