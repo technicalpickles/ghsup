@@ -247,11 +247,11 @@ async function main (argv) {
     default:  prStateStyle = chalk.white
   }
 
-  let header = `${pullRequest.title} #${pullRequest.number}`
+  let header = `${chalk.bold(pullRequest.title)} #${pullRequest.number}`
   if (supportLinks) {
-    console.log(`${link(header, pullRequest.url)} ${prStateStyle(' ' + pullRequest.state + ' ')}`)
+    console.log(`${link(header, pullRequest.url)} ${prStateStyle.bold.white(' \uf407 ' + pullRequest.state + ' ')}`)
   } else {
-    console.log(`${header} ${prStateStyle(pullRequest.state)} [${pullRequest.url}]`)
+    console.log(`${header} ${prStateStyle(' \uf407' + pullRequest.state + ' ')} [${pullRequest.url}]`)
   }
   console.log()
   // console.log(projectDirectory.pullRequest.mergeStateStatus)
@@ -280,17 +280,27 @@ async function main (argv) {
     if (commit.status) {
       for (let context of commit.status.contexts) {
         let statusStyle
+        let glyph
         switch (context.state) {
-          case 'SUCCESS': statusStyle = chalk.green; break
-          case 'PENDING': statusStyle = chalk.yellow; break
-          case 'FAILURE': statusStyle = chalk.red; break
+          case 'SUCCESS':
+            statusStyle = chalk.green
+            glyph = '\uf42e'
+            break
+          case 'PENDING':
+            statusStyle = chalk.yellow
+            glyph = '\uf444'
+            break
+          case 'FAILURE':
+            statusStyle = chalk.red
+            glyph = '\uf467'
+            break
           default:  statusStyle = chalk.white
         }
 
         if (supportLinks) {
-          console.log(`${statusStyle(context.context)} ${link(context.description, context.targetUrl)}`)
+          console.log(`${statusStyle(glyph)} ${chalk.bold(context.context)} ${link(context.description, context.targetUrl)}`)
         } else {
-          console.log(`${statusStyle(context.context)} ${context.description} [${context.targetUrl}]`)
+          console.log(`${statusStyle(glyph)} ${chalk.bold(context.context)} ${context.description} [${context.targetUrl}]`)
         }
       }
 
@@ -299,22 +309,24 @@ async function main (argv) {
     }
   }
 
-  let mergeStatusDescription
-  switch (pullRequest.mergeStateStatus) {
-    case "UNKNOWN":
-      mergeStatusDescription = `Checking merge status...`
-      break
-    case "DIRTY":
-      mergeStatusDescription = `This branch has conflicts that must be resolved`
-      break
-    case "BLOCKED":
-      mergeStatusDescription = `Merging is ${chalk.red('blocked')}`
-      break
-  }
+  if (pullRequest.state == "OPEN") {
+    let mergeStatusDescription
+    switch (pullRequest.mergeStateStatus) {
+      case "UNKNOWN":
+        mergeStatusDescription = `Checking merge status...`
+        break
+      case "DIRTY":
+        mergeStatusDescription = `This branch has conflicts that must be resolved`
+        break
+      case "BLOCKED":
+        mergeStatusDescription = chalk.red(`\uf467 Merging is blocked`)
+        break
+    }
 
-  if (mergeStatusDescription) {
-    console.log()
-    console.log(mergeStatusDescription)
+    if (mergeStatusDescription) {
+      console.log()
+      console.log(mergeStatusDescription)
+    }
   }
 }
 
