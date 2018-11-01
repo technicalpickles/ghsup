@@ -227,7 +227,7 @@ async function main (argv) {
   let pullRequest = projectDirectory.pullRequest
 
   if (!pullRequest) {
-    console.log(`No PR found`)
+    console.log(`No PR found. Create one? https://github.com/${projectDirectory.owner}/${projectDirectory.name}/pull/new/${projectDirectory.branch}`)
     return
   }
 
@@ -303,8 +303,10 @@ async function main (argv) {
   switch (pullRequest.mergeStateStatus) {
     case "UNKNOWN":
       mergeStatusDescription = `Checking merge status...`
+      break
     case "DIRTY":
       mergeStatusDescription = `This branch has conflicts that must be resolved`
+      break
     case "BLOCKED":
       mergeStatusDescription = `Merging is ${chalk.red('blocked')}`
       break
