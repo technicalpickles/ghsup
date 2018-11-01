@@ -254,9 +254,7 @@ async function main (argv) {
     console.log(`${header} ${prStateStyle(' \uf407' + pullRequest.state + ' ')} [${pullRequest.url}]`)
   }
   console.log()
-  // console.log(projectDirectory.pullRequest.mergeStateStatus)
 
-  let i = 0
   for (let commit of commits) {
     console.log(`commit ${commit.oid}`)
 
@@ -303,9 +301,6 @@ async function main (argv) {
           console.log(`${statusStyle(glyph)} ${chalk.bold(context.context)} ${context.description} [${context.targetUrl}]`)
         }
       }
-
-      // console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
-      i++
     }
   }
 
