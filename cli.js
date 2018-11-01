@@ -262,25 +262,27 @@ async function main (argv) {
     console.log(commit.message)
     console.log()
 
-    for (let context of commit.status.contexts) {
-      let statusStyle
-      switch (context.state) {
-        case 'SUCCESS': statusStyle = chalk.green; break
-        case 'PENDING': statusStyle = chalk.yellow; break
-        case 'FAILURE': statusStyle = chalk.red; break
-        default:  statusStyle = chalk.white
+    if (commit.status) {
+      for (let context of commit.status.contexts) {
+        let statusStyle
+        switch (context.state) {
+          case 'SUCCESS': statusStyle = chalk.green; break
+          case 'PENDING': statusStyle = chalk.yellow; break
+          case 'FAILURE': statusStyle = chalk.red; break
+          default:  statusStyle = chalk.white
+        }
+
+        if (supportLinks) {
+          console.log(`${statusStyle(context.context)} ${link(context.description, context.targetUrl)}`)
+        } else {
+          console.log(`${statusStyle(context.context)} ${context.description} [${context.targetUrl}]`)
+        }
       }
 
-      if (supportLinks) {
-        console.log(`${statusStyle(context.context)} ${link(context.description, context.targetUrl)}`)
-      } else { 
-        console.log(`${statusStyle(context.context)} ${context.description} [${context.targetUrl}]`)
-      }
+      // console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
+      i++
     }
-
-    // console.log(`${commit.committedDate} ${commit.oid} ${styledState}`)
-    i++
-  }
+    }
 
   // const commit = projectDirectory.pullRequest.commits.edges[0].node.commit
   // for (let context of commit.status.contexts) {
