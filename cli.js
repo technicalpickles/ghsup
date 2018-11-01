@@ -75,22 +75,26 @@ class ProjectDirectory {
     let results = await this.collectCommitsPage()
     this.pullRequest = results
 
-    let morePages = results.commits.pageInfo.hasPreviousPage
-    let before = results.commits.pageInfo.startCursor
+    if (this.pullRequest) {
+      let morePages = results.commits.pageInfo.hasPreviousPage
+      let before = results.commits.pageInfo.startCursor
 
-    let nextCommits = results.commits.edges.map(edge => edge.node.commit)
-    this.commits = [].concat(nextCommits)
+      let nextCommits = results.commits.edges.map(edge => edge.node.commit)
+      this.commits = [].concat(nextCommits)
 
-    while (morePages) {
-      results = await this.collectCommitsPage(before)
+      while (morePages) {
+        results = await this.collectCommitsPage(before)
 
-      morePages = results.commits.pageInfo.hasPreviousPage
-      before = results.commits.pageInfo.startCursor
+        morePages = results.commits.pageInfo.hasPreviousPage
+        before = results.commits.pageInfo.startCursor
 
-      nextCommits = results.commits.edges.map(edge => edge.node.commit)
-      this.commits = this.commits.concat(nextCommits)
+        nextCommits = results.commits.edges.map(edge => edge.node.commit)
+        this.commits = this.commits.concat(nextCommits)
+      }
+      this.commits.sort((a, b) => new Date(a.committedDate).getTime() - new Date(b.committedDate).getTime())
+    }else {
+      this.commits = []
     }
-    this.commits.sort((a, b) => new Date(a.committedDate).getTime() - new Date(b.committedDate).getTime())
   }
 
   async collectCommitsPage (before) {
@@ -165,7 +169,12 @@ class ProjectDirectory {
     if (data.errors) {
       throw JSON.stringify(data.errors, null, 2)
     }
-    return data.data.repository.pullRequests.edges[0].node
+    let edge = data.data.repository.pullRequests.edges[0]
+    if (edge) {
+      return edge.node
+    } else {
+      return null
+    }
   }
 
   async fetchGraphql (query) {
@@ -216,6 +225,11 @@ async function main (argv) {
   const projectDirectory = new ProjectDirectory(process.argv[2])
   await projectDirectory.collectEverything()
   let pullRequest = projectDirectory.pullRequest
+
+  if (!pullRequest) {
+    console.log(`No PR found`)
+    return
+  }
 
   const lastPullRequestCommit = projectDirectory.commits[projectDirectory.commits.length- 1]
   if (lastPullRequestCommit.oid !== projectDirectory.sha) {
@@ -285,17 +299,20 @@ async function main (argv) {
     }
   }
 
+  let mergeStatusDescription
   switch (pullRequest.mergeStateStatus) {
     case "UNKNOWN":
-      console.log()
-      console.log(`Checking merge status...`)
+      mergeStatusDescription = `Checking merge status...`
     case "DIRTY":
-      console.log()
-      console.log(`This branch has conflicts that must be resolved`)
+      mergeStatusDescription = `This branch has conflicts that must be resolved`
     case "BLOCKED":
-      console.log()
-      console.log(`Merging is ${chalk.red('blocked')}`)
+      mergeStatusDescription = `Merging is ${chalk.red('blocked')}`
       break
+  }
+
+  if (mergeStatusDescription) {
+    console.log()
+    console.log(mergeStatusDescription)
   }
 }
 
