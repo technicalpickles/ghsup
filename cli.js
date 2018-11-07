@@ -50,7 +50,7 @@ class ProjectDirectory {
 
     this.remote = result.stdout
     this.remote = this.remote.substring(0, this.remote.length - 1)
-    const match = this.remote.match(/github\.com\/(\w+)\/(\w+)/)
+    const match = this.remote.match(/github\.com\/([A-z0-9-]+)\/([A-z0-9-]+)/)
     this.owner = match[1]
     this.name = match[2]
     return this.remote
