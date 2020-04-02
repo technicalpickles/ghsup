@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "ansi-escapes": "^3.1.0",
-    "chalk": "^2.4.1",
+    "chalk": "^4.0.0",
     "commander": "^2.19.0",
     "dotenv": "^6.1.0",
     "node-fetch": "^2.2.0",
